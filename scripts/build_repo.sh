@@ -31,7 +31,9 @@ print(ET.parse('${addon_dir}/addon.xml').getroot().attrib['version'])")
     (cd "${REPO_ROOT}" && zip -r "${target_dir}/${zip_name}" "${addon}/" \
         -x "${addon}/.git/*" -x "${addon}/__pycache__/*" -x "${addon}/*.pyc")
 
-    DOWNLOAD_LINKS="${DOWNLOAD_LINKS}        <li><a href=\"${addon}/${zip_name}\">${zip_name}</a></li>\n"
+    # Kodi CHTTPDirectory: Anzeige-Text muss mit href uebereinstimmen (nach Slash-Strip).
+    # Verzeichnis-Links (href=addon/), nicht ZIP mit anderem Link-Text.
+    DOWNLOAD_LINKS="${DOWNLOAD_LINKS}        <li><a href=\"${addon}/\">${addon}</a></li>\n"
 
     cat > "${target_dir}/index.html" <<SUBDIREOF
 <!DOCTYPE html>
@@ -65,7 +67,7 @@ cat > "${DOCS_DIR}/index.html" <<INDEXEOF
     <h2>Installation in Kodi</h2>
     <ol>
         <li>Dateimanager &rarr; Quelle hinzuf&uuml;gen &rarr; URL eingeben (siehe oben)</li>
-        <li>Add-ons &rarr; Aus ZIP-Datei installieren &rarr; Quelle w&auml;hlen &rarr; <code>repository.amazon-waipu</code></li>
+        <li>Add-ons &rarr; Aus ZIP-Datei installieren &rarr; Quelle w&auml;hlen &rarr; Ordner <code>repository.amazon-waipu</code> &rarr; <code>repository.amazon-waipu-*.zip</code></li>
         <li>Add-ons &rarr; Aus Repository installieren &rarr; Amazon VOD Enhanced Repository &rarr; Video-Add-ons &rarr; Amazon VOD (Enhanced)</li>
     </ol>
     <h2>Downloads</h2>
