@@ -22,8 +22,8 @@ Dieser Fork verbessert die Sichtbarkeit durch:
 Repository-URL: `https://grenzenloseSchublade.github.io/xbmc/`
 
 In Kodi:
-1. Dateimanager → Quelle hinzufuegen → URL eingeben
-2. Add-ons → Aus ZIP-Datei installieren → Quelle waehlen → `repository.amazon-waipu`
+1. Dateimanager → Quelle hinzufuegen → URL eingeben (siehe oben)
+2. Add-ons → Aus ZIP-Datei installieren → Quelle waehlen → Ordner **`repository.amazon-waipu`** oeffnen → **`repository.amazon-waipu-*.zip`** installieren (Kodi listet nur Links, bei denen Anzeige-Text und href uebereinstimmen; im Wurzelverzeichnis sind das Ordner-Links)
 3. Add-ons → Aus Repository installieren → Amazon VOD Enhanced Repository → Video-Add-ons → Amazon VOD (Enhanced)
 
 ### 2. Original-Plugin deinstallieren
