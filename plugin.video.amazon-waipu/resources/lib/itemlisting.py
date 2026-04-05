@@ -36,15 +36,31 @@ def setContentAndView(content, **kwargs):
 
     if None is not ctype:
         xbmcplugin.setContent(_g.pluginhandle, ctype)
-    if (None is not cview) and ('true' == _s.viewenable):
-        views = [50, 51, 52, 53, 54, 55, 500, 501, 502, -1]
-        viewid = views[int(getattr(_s, cview))]
-        if viewid == -1:
-            viewid = int(getattr(_s, cview.replace('view', 'id')))
-        xbmc.executebuiltin(f'Container.SetViewMode({viewid})')
+
+    viewid = None
+    if 'true' == _s.viewenable:
+        if cview is not None:
+            views = [50, 51, 52, 53, 54, 55, 500, 501, 502, -1]
+            viewid = views[int(getattr(_s, cview))]
+            if viewid == -1:
+                viewid = int(getattr(_s, cview.replace('view', 'id')))
+        else:
+            try:
+                viewid = int(getattr(_s, 'movieid', 0) or 0)
+            except (ValueError, TypeError):
+                viewid = None
+            if not viewid or viewid <= 0:
+                viewid = None
+
     xbmcplugin.addSortMethod(_g.pluginhandle, xbmcplugin.SORT_METHOD_UNSORTED,
                               labelMask='%L', label2Mask='%h')
     xbmcplugin.endOfDirectory(_g.pluginhandle, **kwargs)
+
+    # SetViewMode AFTER endOfDirectory -- workaround for Kodi bug #18576
+    # https://github.com/xbmc/xbmc/issues/18576
+    if viewid is not None:
+        xbmc.sleep(100)
+        xbmc.executebuiltin(f'Container.SetViewMode({viewid})')
 
 
 def addDir(name, mode='', url='', infoLabels=None, opt='', catalog='Browse', cm=None, page=1, export=False, thumb=None):

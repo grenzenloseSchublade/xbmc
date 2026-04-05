@@ -14,6 +14,42 @@ rm -rf "${DOCS_DIR}"
 mkdir -p "${DOCS_DIR}"
 touch "${DOCS_DIR}/.nojekyll"
 
+cat > "${DOCS_DIR}/index.html" <<'INDEXEOF'
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Amazon VOD Enhanced - Kodi Repository</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 700px; margin: 60px auto; padding: 0 20px; color: #e0e0e0; background: #1a1a2e; }
+        h1 { color: #00a8e0; } h2 { color: #ccc; border-bottom: 1px solid #333; padding-bottom: 6px; }
+        a { color: #ff8c00; } code { background: #16213e; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+        .box { background: #16213e; border-left: 4px solid #00a8e0; padding: 16px; margin: 20px 0; border-radius: 4px; }
+        ol li { margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+    <h1>Amazon VOD Enhanced</h1>
+    <p>Fork des <a href="https://github.com/Sandmann79/xbmc">Sandmann79 Amazon VOD Plugins</a> mit verbesserter Bezahlartikel-Darstellung.</p>
+    <div class="box"><strong>Kodi Repository URL:</strong><br><code>https://grenzenloseSchublade.github.io/xbmc/</code></div>
+    <h2>Installation in Kodi</h2>
+    <ol>
+        <li>Dateimanager &rarr; Quelle hinzuf&uuml;gen &rarr; URL eingeben (siehe oben)</li>
+        <li>Add-ons &rarr; Aus ZIP-Datei installieren &rarr; Quelle w&auml;hlen &rarr; <code>repository.amazon-waipu</code></li>
+        <li>Add-ons &rarr; Aus Repository installieren &rarr; Amazon VOD Enhanced Repository &rarr; Video-Add-ons &rarr; Amazon VOD (Enhanced)</li>
+    </ol>
+    <h2>Verbesserungen</h2>
+    <ul>
+        <li>Fettes Euro-Zeichen (<strong>&euro;</strong>) als Prefix vor Kaufartikeln</li>
+        <li>Label2 &bdquo;Kauf&ldquo; als zweite Textzeile in Listen-Views</li>
+        <li>Zuverl&auml;ssigeres View-Setting (Kodi Bug #18576 Workaround)</li>
+        <li>Auff&auml;lligere Default-Farbe f&uuml;r Bezahlartikel</li>
+    </ul>
+    <p><a href="https://github.com/grenzenloseSchublade/xbmc">Quellcode auf GitHub</a></p>
+</body>
+</html>
+INDEXEOF
+
 for addon in "${ADDONS[@]}"; do
     addon_dir="${REPO_ROOT}/${addon}"
     [[ -d "${addon_dir}" ]] || { echo "SKIP: ${addon} nicht gefunden"; continue; }
