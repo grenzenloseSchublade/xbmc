@@ -59,4 +59,56 @@
       </assets>
     </extension>
   </addon>
+  <addon id="script.module.amazoncaptcha" name="amazoncaptcha" version="0.5.11+matrix.1" provider-name="Anatolii Maliarov">
+    <requires>
+      <import addon="xbmc.python" version="3.0.0" />
+      <import addon="script.module.pil" version="1.1.7" />
+    </requires>
+    <extension point="xbmc.python.module" library="lib" />
+    <extension point="xbmc.addon.metadata">
+      <summary lang="en_GB">Pillow-based solver for Amazon's text captcha</summary>
+      <description lang="en_GB">Pillow-based solver for Amazon's text captcha</description>
+      <license>MIT License</license>
+      <platform>all</platform>
+      <website>https://github.com/a-maliarov/amazoncaptcha</website>
+      <source>https://github.com/a-maliarov/amazoncaptcha</source>
+    </extension>
+  </addon>
+  <addon id="script.module.mechanicalsoup" name="MechanicalSoup" version="1.0.0+matrix.1" provider-name="Matthew Hickford, Dan Hemberger, Matthieu Moy">
+    <requires>
+      <import addon="xbmc.python" version="2.25.0" />
+      <import addon="script.module.requests" version="2.0.0" />
+      <import addon="script.module.beautifulsoup4" version="4.4.0" />
+      <import addon="script.module.six" version="1.4.0" />
+    </requires>
+    <extension point="xbmc.python.module" library="lib" />
+    <extension point="xbmc.addon.metadata">
+      <summary lang="en_GB">A Python library for automating interaction with websites.</summary>
+      <forum />
+      <website>https://mechanicalsoup.readthedocs.io/</website>
+      <license>MIT</license>
+      <platform>all</platform>
+      <source>https://github.com/MechanicalSoup/MechanicalSoup</source>
+      <assets>
+        <icon>icon.png</icon>
+      </assets>
+    </extension>
+  </addon>
+  <addon id="script.module.pyautogui" name="PyAutoGUI" version="0.9.51+matrix.1" provider-name="Al Sweigart">
+    <requires>
+      <import addon="xbmc.python" version="2.25.0" />
+    </requires>
+    <extension point="xbmc.python.module" library="lib" />
+    <extension point="xbmc.addon.metadata">
+      <summary lang="en_GB">PyAutoGUI is a cross-platform GUI automation Python module for human beings. Used to programmatically control the mouse and keyboard.</summary>
+      <forum />
+      <website>https://pyautogui.readthedocs.io/</website>
+      <license>see LICENSE.txt</license>
+      <platform>all</platform>
+      <source>https://github.com/asweigart/pyautogui</source>
+      <assets>
+        <icon>icon.png</icon>
+      </assets>
+    </extension>
+  </addon>
 </addons>

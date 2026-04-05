@@ -8,6 +8,9 @@ DOCS_DIR="${REPO_ROOT}/docs"
 ADDONS=(
     "plugin.video.amazon-waipu"
     "repository.amazon-waipu"
+    "script.module.amazoncaptcha"
+    "script.module.mechanicalsoup"
+    "script.module.pyautogui"
 )
 
 rm -rf "${DOCS_DIR}"
@@ -30,6 +33,11 @@ print(ET.parse('${addon_dir}/addon.xml').getroot().attrib['version'])")
     echo "ZIP: ${addon} v${version}"
     (cd "${REPO_ROOT}" && zip -r "${target_dir}/${zip_name}" "${addon}/" \
         -x "${addon}/.git/*" -x "${addon}/__pycache__/*" -x "${addon}/*.pyc")
+
+    # Kodi laedt icon.png/fanart.png aus datadir/{addon_id}/ (nicht nur aus ZIP).
+    for asset in icon.png fanart.png clearlogo.png; do
+        [[ -f "${addon_dir}/${asset}" ]] && cp "${addon_dir}/${asset}" "${target_dir}/"
+    done
 
     # Kodi CHTTPDirectory: Anzeige-Text muss mit href uebereinstimmen (nach Slash-Strip).
     # Verzeichnis-Links (href=addon/), nicht ZIP mit anderem Link-Text.
@@ -97,6 +105,9 @@ addons_el = ET.Element('addons')
 addon_dirs = [
     'plugin.video.amazon-waipu',
     'repository.amazon-waipu',
+    'script.module.amazoncaptcha',
+    'script.module.mechanicalsoup',
+    'script.module.pyautogui',
 ]
 
 for addon_id in addon_dirs:
