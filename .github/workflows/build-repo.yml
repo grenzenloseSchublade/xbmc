@@ -1,0 +1,34 @@
+name: Build Kodi Repository
+
+on:
+  push:
+    paths:
+      - 'plugin.video.amazon-waipu/**'
+      - 'repository.amazon-waipu/**'
+      - 'scripts/build_repo.sh'
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build ZIP and addons.xml
+        run: bash scripts/build_repo.sh
+
+      - name: Commit docs/ to repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "build: update Kodi repository artifacts"
+            git push
+          fi
