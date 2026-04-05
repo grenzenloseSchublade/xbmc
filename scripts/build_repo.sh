@@ -12,6 +12,7 @@ ADDONS=(
 
 rm -rf "${DOCS_DIR}"
 mkdir -p "${DOCS_DIR}"
+touch "${DOCS_DIR}/.nojekyll"
 
 for addon in "${ADDONS[@]}"; do
     addon_dir="${REPO_ROOT}/${addon}"
