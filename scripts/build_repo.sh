@@ -14,7 +14,37 @@ rm -rf "${DOCS_DIR}"
 mkdir -p "${DOCS_DIR}"
 touch "${DOCS_DIR}/.nojekyll"
 
-cat > "${DOCS_DIR}/index.html" <<'INDEXEOF'
+DOWNLOAD_LINKS=""
+
+for addon in "${ADDONS[@]}"; do
+    addon_dir="${REPO_ROOT}/${addon}"
+    [[ -d "${addon_dir}" ]] || { echo "SKIP: ${addon} nicht gefunden"; continue; }
+
+    version=$(python3 -c "
+import xml.etree.ElementTree as ET
+print(ET.parse('${addon_dir}/addon.xml').getroot().attrib['version'])")
+    zip_name="${addon}-${version}.zip"
+    target_dir="${DOCS_DIR}/${addon}"
+    mkdir -p "${target_dir}"
+
+    echo "ZIP: ${addon} v${version}"
+    (cd "${REPO_ROOT}" && zip -r "${target_dir}/${zip_name}" "${addon}/" \
+        -x "${addon}/.git/*" -x "${addon}/__pycache__/*" -x "${addon}/*.pyc")
+
+    DOWNLOAD_LINKS="${DOWNLOAD_LINKS}        <li><a href=\"${addon}/${zip_name}\">${zip_name}</a></li>\n"
+
+    cat > "${target_dir}/index.html" <<SUBDIREOF
+<!DOCTYPE html>
+<html><head><title>${addon}</title></head>
+<body>
+<h1>${addon}</h1>
+<a href="${zip_name}">${zip_name}</a>
+</body>
+</html>
+SUBDIREOF
+done
+
+cat > "${DOCS_DIR}/index.html" <<INDEXEOF
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -38,6 +68,10 @@ cat > "${DOCS_DIR}/index.html" <<'INDEXEOF'
         <li>Add-ons &rarr; Aus ZIP-Datei installieren &rarr; Quelle w&auml;hlen &rarr; <code>repository.amazon-waipu</code></li>
         <li>Add-ons &rarr; Aus Repository installieren &rarr; Amazon VOD Enhanced Repository &rarr; Video-Add-ons &rarr; Amazon VOD (Enhanced)</li>
     </ol>
+    <h2>Downloads</h2>
+    <ul>
+$(echo -e "${DOWNLOAD_LINKS}")
+    </ul>
     <h2>Verbesserungen</h2>
     <ul>
         <li>Fettes Euro-Zeichen (<strong>&euro;</strong>) als Prefix vor Kaufartikeln</li>
@@ -49,22 +83,6 @@ cat > "${DOCS_DIR}/index.html" <<'INDEXEOF'
 </body>
 </html>
 INDEXEOF
-
-for addon in "${ADDONS[@]}"; do
-    addon_dir="${REPO_ROOT}/${addon}"
-    [[ -d "${addon_dir}" ]] || { echo "SKIP: ${addon} nicht gefunden"; continue; }
-
-    version=$(python3 -c "
-import xml.etree.ElementTree as ET
-print(ET.parse('${addon_dir}/addon.xml').getroot().attrib['version'])")
-    zip_name="${addon}-${version}.zip"
-    target_dir="${DOCS_DIR}/${addon}"
-    mkdir -p "${target_dir}"
-
-    echo "ZIP: ${addon} v${version}"
-    (cd "${REPO_ROOT}" && zip -r "${target_dir}/${zip_name}" "${addon}/" \
-        -x "${addon}/.git/*" -x "${addon}/__pycache__/*" -x "${addon}/*.pyc")
-done
 
 echo "Generiere addons.xml ..."
 python3 - "${REPO_ROOT}" "${DOCS_DIR}" <<'PYEOF'
