@@ -180,7 +180,7 @@ v0.5.9 (2022-03-22)
   </addon>
   <addon id="script.module.mechanicalsoup" name="MechanicalSoup" version="1.4.0+matrix.1" provider-name="Matthew Hickford, Dan Hemberger, Matthieu Moy">
     <requires>
-      <import addon="xbmc.python" version="2.25.0" />
+      <import addon="xbmc.python" version="3.0.0" />
       <import addon="script.module.requests" version="2.0.0" />
       <import addon="script.module.beautifulsoup4" version="4.4.0" />
     </requires>
@@ -199,7 +199,7 @@ v0.5.9 (2022-03-22)
   </addon>
   <addon id="script.module.pyautogui" name="PyAutoGUI" version="0.9.54+matrix.1" provider-name="Al Sweigart">
     <requires>
-      <import addon="xbmc.python" version="2.25.0" />
+      <import addon="xbmc.python" version="3.0.0" />
     </requires>
     <extension point="xbmc.python.module" library="lib" />
     <extension point="xbmc.addon.metadata">
