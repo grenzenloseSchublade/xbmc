@@ -705,7 +705,55 @@ msgctxt "#30219"
 msgid "Unable to retrieve Amazon's territorial configuration."
 msgstr ""
 
-# empty strings from id 30220 to 30241
+msgctxt "#30220"
+msgid "Poster badge mode"
+msgstr ""
+
+msgctxt "#30221"
+msgid "Off"
+msgstr ""
+
+msgctxt "#30222"
+msgid "Border only"
+msgstr ""
+
+msgctxt "#30223"
+msgid "Badge only"
+msgstr ""
+
+msgctxt "#30224"
+msgid "Border + Badge"
+msgstr ""
+
+msgctxt "#30225"
+msgid "Badge border color (hex RGB)"
+msgstr ""
+
+msgctxt "#30226"
+msgid "Badge display strategy"
+msgstr ""
+
+msgctxt "#30227"
+msgid "Automatic"
+msgstr ""
+
+msgctxt "#30228"
+msgid "Text color only"
+msgstr ""
+
+msgctxt "#30229"
+msgid "Image badge (PIL)"
+msgstr ""
+
+msgctxt "#30230"
+msgid "Skin overlay"
+msgstr ""
+
+msgctxt "#30231"
+msgid "Auto-refresh after badge creation"
+msgstr ""
+
+# empty strings from id 30232 to 30241
 msgctxt "#30242"
 msgid "Page {}"
 msgstr ""

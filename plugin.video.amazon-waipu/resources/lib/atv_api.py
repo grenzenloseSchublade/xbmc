@@ -532,7 +532,7 @@ class PrimeVideo(Singleton):
             name += getString(30167) + ' ' + str(season).replace('0', '.')
         else:
             name += getString(30169)
-        if not infoLabels['isPrime']:
+        if not infoLabels['isPrime'] and self._s.paycont:
             name = f'[COLOR {self._s.paycol}]{name}[/COLOR]'
         return name
 
@@ -720,7 +720,7 @@ class PrimeVideo(Singleton):
                 infoLabels['thumb'] = self._g.DefaultFanart
             if not infoLabels['fanart']:
                 infoLabels['fanart'] = self._gDefaultFanart
-            if not infoLabels['isPrime'] and not contentType == 'series':
+            if not infoLabels['isPrime'] and not contentType == 'series' and self._s.paycont:
                 infoLabels['DisplayTitle'] = f"[COLOR {self._s.paycol}]{infoLabels['DisplayTitle']}[/COLOR]"
         return contentType, infoLabels
 

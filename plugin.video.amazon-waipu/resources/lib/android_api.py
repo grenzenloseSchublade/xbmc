@@ -326,7 +326,14 @@ class PrimeVideo(Singleton):
             if il['episode'] > 0:
                 name = f"{il['episode']}. {name}"
         if not il['isPrime'] and self._s.paycont:
-            name = f'[COLOR {self._s.paycol}][B]\u20AC[/B] {name}[/COLOR]'
+            ot = il.get('offerType', 'buy')
+            if ot == 'rent':
+                prefix = '[B]\u20AC Miete[/B]'
+            elif ot == 'channel':
+                prefix = '[B]Abo[/B]'
+            else:
+                prefix = '[B]\u20AC[/B]'
+            name = f'[COLOR {self._s.paycol}]{prefix} {name}[/COLOR]'
         return name
 
     def writeCache(self, content, cont_id=None):
@@ -555,7 +562,8 @@ class PrimeVideo(Singleton):
                       'director': None, 'genre': None, 'studio': None, 'thumb': None, 'fanart': None, 'isHD': False, 'isUHD': False,
                       'audiochannels': 2, 'TrailerAvailable': False,
                       'asins': content.get('id', content.get('titleId', content.get('channelId', content.get('stationId', '')))),
-                      'isPrime': content.get('showPrimeEmblem', False)}
+                      'isPrime': content.get('showPrimeEmblem', False),
+                      'offerType': 'buy'}
 
         if infoLabels['isPrime'] is False and 'cardDecoration' in content:
             vmt = get_key('', content, 'cardDecoration', 'playbackLinkAction', 'videoMaterialType')
@@ -565,6 +573,10 @@ class PrimeVideo(Singleton):
                 infoLabels['isPrime'] = imgid != 'OFFER_ICON'
             else:
                 infoLabels['isPrime'] = vmt == 'Feature'
+                if not infoLabels['isPrime'] and vmt:
+                    vmt_lower = vmt.lower()
+                    if 'rent' in vmt_lower or 'trailer' in vmt_lower:
+                        infoLabels['offerType'] = 'rent'
 
         if 'badges' in content:
             b = content['badges']
@@ -576,6 +588,9 @@ class PrimeVideo(Singleton):
             pa = content['playbackActions'][0]
             infoLabels['isHD'] = pa['userPlaybackMetadata'].get('videoQuality', 'SD') != 'SD'
             infoLabels['isPrime'] = pa['userPlaybackMetadata'].get('consumable', False) is True
+
+        if content.get('channelId') or content.get('stationId'):
+            infoLabels['offerType'] = 'channel'
 
         del content
         return infoLabels if crIL else infoLabels['asins']

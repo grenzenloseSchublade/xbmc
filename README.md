@@ -41,10 +41,14 @@ Nach Installation des Fork-Plugins muss einmalig neu eingeloggt werden (Tokens s
 | Datei | Aenderung |
 |-------|-----------|
 | `plugin.video.amazon-waipu/addon.xml` | Neue Addon-ID, Version, Provider |
-| `plugin.video.amazon-waipu/resources/lib/android_api.py` | Euro-Prefix in `formatTitle()`, Facetten-Prefix |
+| `plugin.video.amazon-waipu/resources/lib/android_api.py` | Euro-Prefix in `formatTitle()`, Facetten-Prefix, `offerType`-Erkennung |
 | `plugin.video.amazon-waipu/resources/lib/web_api.py` | Euro-Prefix fuer Kategorien |
-| `plugin.video.amazon-waipu/resources/lib/itemlisting.py` | `setLabel2`, `IsPaid` Property, `addSortMethod` |
-| `plugin.video.amazon-waipu/resources/settings.xml` | `paycol` Default geaendert |
+| `plugin.video.amazon-waipu/resources/lib/itemlisting.py` | `setLabel2`, `IsPaid`/`OfferType` Properties, Badge-Modus-Steuerung |
+| `plugin.video.amazon-waipu/resources/lib/badge_overlay.py` | PIL-Badge-Erzeugung, Hintergrund-Verarbeitung, Container.Refresh |
+| `plugin.video.amazon-waipu/resources/lib/common.py` | Settings fuer `badge_display`, `badge_auto_refresh`, `badge_mode`, `badge_color` |
+| `plugin.video.amazon-waipu/resources/settings.xml` | Bezahlinhalt-Einstellungen (Badge-Modus, Auto-Refresh, Farben) |
+| `plugin.video.amazon-waipu/resources/media/badge_paid.png` | 64x64 Badge-Grafik fuer Skin-Overlay |
+| `scripts/patch_skin_badges.sh` | ADB-Skript fuer idempotenten Skin-Patch |
 
 ## Sichtbarkeit nach View
 
@@ -55,6 +59,71 @@ Nach Installation des Fork-Plugins muss einmalig neu eingeloggt werden (Tokens s
 | Netflix (504) | Nur bei Fokus | Nur bei Fokus | Nicht sichtbar |
 
 **Empfehlung:** Fuer Amazon VOD Listen-Views verwenden (z.B. ListV2 = ID 527).
+
+## Badge-Darstellung fuer Bezahlinhalte
+
+Bezahlinhalte (Kauf, Miete, Abo) werden durch verschiedene Strategien visuell hervorgehoben. Die Strategie ist in den Addon-Einstellungen unter **Bezahlinhalte** konfigurierbar.
+
+### Badge-Modi (Einstellung: "Badge-Darstellung")
+
+| Modus | Beschreibung |
+|-------|-------------|
+| **Automatisch** (Standard) | Text-Farbe + PIL-Bild-Badge + Container.Refresh |
+| **Nur Text-Farbe** | Orangefarbener Titel + Euro-Prefix, kein Poster-Badge |
+| **Bild-Badge (PIL)** | Text-Farbe + PIL-generierter Rahmen/Badge auf dem Poster |
+| **Skin-Overlay** | Text-Farbe + Skin zeigt Badge per `IsPaid`-Property (kein PIL) |
+
+### Strategie A: PIL-Bild-Badge mit Container.Refresh
+
+- Poster/Thumbnails werden im Hintergrund per PIL (Pillow) mit einem orangen Rahmen und/oder Euro-Badge versehen
+- Bilder werden auf max. 600px Hoehe skaliert und als JPEG (85% Qualitaet) im Cache gespeichert (`special://temp/pay_badges/`)
+- Nach Abschluss der Hintergrund-Verarbeitung wird automatisch `Container.Refresh` ausgefuehrt (abschaltbar ueber "Auto-Refresh nach Badge-Erzeugung")
+- Beim zweiten Besuch der Seite werden gecachte Bilder sofort angezeigt
+
+### Strategie B: Skin-Overlay (Arctic Zephyr Reloaded)
+
+Fuer Arctic Zephyr Reloaded kann ein Skin-Overlay aktiviert werden, das ein 64x64-Euro-Badge direkt ueber dem Poster anzeigt -- ohne PIL, ohne Verzoegerung.
+
+**Voraussetzungen:** Das Skript `scripts/patch_skin_badges.sh` muss einmalig (und nach jedem Skin-Update erneut) ausgefuehrt werden.
+
+**Aufruf:**
+
+```bash
+# Standard: Views aus Addon-Einstellungen + SidePoster
+./scripts/patch_skin_badges.sh
+
+# Bestimmte Views patchen
+./scripts/patch_skin_badges.sh 527 522 50
+
+# Alle bekannten Video-Views patchen
+./scripts/patch_skin_badges.sh --all
+
+# Patch entfernen
+./scripts/patch_skin_badges.sh --remove
+```
+
+Das Skript ist **idempotent pro View** -- wiederholtes Ausfuehren patcht keine Datei doppelt. Es nutzt Marker-Kommentare (`<!-- Amazon Waipu Pay Badge - VIEW_xxx -->`) zur Erkennung.
+
+**Bekannte View-IDs:**
+
+| ID | Datei |
+|----|-------|
+| 50 | `View_50_List.xml` |
+| 53 | `View_53_Poster.xml` |
+| 55 | `View_55_Wall.xml` |
+| 500 | `View_500_Thumbnails.xml` |
+| 510 | `View_510_Minimal.xml` |
+| 521 | `View_521_Minimal_V2.xml` |
+| 522 | `View_522_Minimal_V2_Episodes.xml` |
+| 527 | `View_527_List_V2.xml` |
+| 550 | `View_550_SidePoster.xml` |
+
+### Technische Details
+
+- **Properties:** `IsPaid` (true/false), `OfferType` (buy/rent/channel) werden auf jedem `ListItem` gesetzt
+- **Cache:** `special://temp/pay_badges/` (JPEG, ~30-80KB pro Bild)
+- **PIL-Abhaengigkeit:** Nur fuer Strategie A noetig; PIL/Pillow muss im Python-Pfad verfuegbar sein
+- **Skin-Badge-Textur:** `resources/media/badge_paid.png` (64x64 PNG, orangenes Rechteck mit weissem Euro-Zeichen)
 
 ## Upstream-Sync
 
@@ -89,13 +158,17 @@ xbmc/  (Fork von Sandmann79/xbmc)
 ├── plugin.video.amazon-test/            # Original (unveraendert)
 ├── plugin.video.amazon-waipu/           # Fork mit Patches
 │   ├── addon.xml                        # ID: plugin.video.amazon-waipu
-│   ├── resources/lib/android_api.py     # Patch: formatTitle, Facetten
+│   ├── resources/lib/android_api.py     # Patch: formatTitle, Facetten, offerType
 │   ├── resources/lib/web_api.py         # Patch: Kategorien-Farben
-│   ├── resources/lib/itemlisting.py     # Patch: Label2, IsPaid, SortMethod
-│   └── resources/settings.xml           # paycol Default
+│   ├── resources/lib/itemlisting.py     # Patch: Label2, IsPaid, Badge-Steuerung
+│   ├── resources/lib/badge_overlay.py   # PIL-Badge + Container.Refresh
+│   ├── resources/lib/common.py          # Badge-Einstellungen
+│   ├── resources/media/badge_paid.png   # Skin-Overlay-Badge (64x64)
+│   └── resources/settings.xml           # Bezahlinhalt-Einstellungen
 ├── repository.amazon-waipu/             # Kodi-Repository-Addon
 ├── docs/                                # GitHub Pages (addons.xml, ZIPs)
 ├── scripts/build_repo.sh               # ZIP + addons.xml Builder
+├── scripts/patch_skin_badges.sh         # ADB Skin-Patch fuer Badge-Overlay
 └── .github/workflows/build-repo.yml    # CI Pipeline
 ```
 

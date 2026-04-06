@@ -204,6 +204,23 @@ class Settings(Singleton):
         elif 'primecol' == name:
             primecol = self._gs('primecol')
             return primecol if primecol else 'FF00A8E0'
+        elif 'badge_mode' == name:
+            try:
+                return self._gs('badge_mode') or '3'
+            except Exception:
+                return '3'
+        elif 'badge_color' == name:
+            try:
+                return self._gs('badge_color') or 'FF6600'
+            except Exception:
+                return 'FF6600'
+        elif 'badge_display' == name:
+            try:
+                return int(self._gs('badge_display') or '0')
+            except Exception:
+                return 0
+        elif 'badge_auto_refresh' == name:
+            return self._gs('badge_auto_refresh') == 'true'
 
         value = None
         for cmd in self._ret_types:

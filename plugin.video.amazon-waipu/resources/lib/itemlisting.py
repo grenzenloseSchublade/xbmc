@@ -10,6 +10,35 @@ from .export import Export
 _g = Globals()
 _s = Settings()
 
+_BADGE_MODES = {0: 'off', 1: 'border', 2: 'badge', 3: 'both'}
+
+
+def _apply_pay_badge(poster, thumb, infoLabels):
+    """Wendet PIL-Badge auf Poster/Thumb an, gesteuert durch badge_display-Einstellung.
+    badge_display: 0=auto, 1=text-only, 2=pil, 3=skin-overlay"""
+    display_mode = _s.badge_display
+
+    if display_mode == 1 or display_mode == 3:
+        return poster, thumb
+
+    from .badge_overlay import get_badged_poster, hex_to_rgb
+    mode_int = int(_s.badge_mode or '3')
+    badge_mode = _BADGE_MODES.get(mode_int, 'both')
+    if badge_mode == 'off':
+        return poster, thumb
+    border_color = hex_to_rgb(_s.badge_color or 'FF6600')
+    badge_text = '\u20AC'
+    ot = infoLabels.get('offerType', '')
+    if ot == 'rent':
+        badge_text = 'MIETE'
+    elif ot == 'channel':
+        badge_text = 'ABO'
+    if poster:
+        poster = get_badged_poster(poster, badge_mode, border_color, badge_text)
+    if thumb and thumb != poster:
+        thumb = get_badged_poster(thumb, badge_mode, border_color, badge_text)
+    return poster, thumb
+
 
 def setContentAndView(content, **kwargs):
     if content == 'movie':
@@ -85,16 +114,25 @@ def addDir(name, mode='', url='', infoLabels=None, opt='', catalog='Browse', cm=
     fanart = infoLabels.get('fanart', _g.DefaultFanart)
     poster = infoLabels.get('poster', thumb)
 
+    is_paid = infoLabels and infoLabels.get('isPrime', True) is False and _s.paycont
+    if is_paid:
+        poster, thumb = _apply_pay_badge(poster, thumb, infoLabels)
+
     item = ListItem_InfoTag(name)
     item.setProperty('IsPlayable', 'false')
     item.setArt({'fanart': fanart, 'poster': poster, 'icon': thumb, 'thumb': thumb})
 
-    if infoLabels and infoLabels.get('isPrime', True) is False and _s.paycont:
-        item.setLabel2(f'[COLOR {_s.paycol}]Kauf[/COLOR]')
+    if is_paid:
+        ot = infoLabels.get('offerType', 'buy')
+        badge_map = {'rent': 'Miete', 'channel': 'Abo', 'buy': 'Kauf'}
+        item.setLabel2(f'[COLOR {_s.paycol}]{badge_map.get(ot, "Kauf")}[/COLOR]')
         item.setProperty('IsPaid', 'true')
+        item.setProperty('OfferType', ot)
 
     if infoLabels:
         item.set_Info('Video', infoLabels)
+        if _g.KodiVersion > 19 and item.InfoTag is not None:
+            item.InfoTag.setTitle(name)
         if 'totalseasons' in infoLabels:
             item.setProperty('totalseasons', str(infoLabels['totalseasons']))
         if 'poster' in infoLabels:
@@ -114,13 +152,20 @@ def addVideo(name, asin, infoLabels, cm=None, export=False):
     fanart = infoLabels.get('fanart', _g.DefaultFanart)
     poster = infoLabels.get('poster', thumb)
 
+    is_paid = infoLabels.get('isPrime', True) is False and _s.paycont
+    if is_paid:
+        poster, thumb = _apply_pay_badge(poster, thumb, infoLabels)
+
     item = ListItem_InfoTag(name)
     item.setArt({'fanart': fanart, 'poster': poster, 'thumb': thumb})
     item.setProperty('IsPlayable', 'true')  # always true, to view watched state
 
-    if infoLabels.get('isPrime', True) is False and _s.paycont:
-        item.setLabel2(f'[COLOR {_s.paycol}]Kauf[/COLOR]')
+    if is_paid:
+        ot = infoLabels.get('offerType', 'buy')
+        badge_map = {'rent': 'Miete', 'channel': 'Abo', 'buy': 'Kauf'}
+        item.setLabel2(f'[COLOR {_s.paycol}]{badge_map.get(ot, "Kauf")}[/COLOR]')
         item.setProperty('IsPaid', 'true')
+        item.setProperty('OfferType', ot)
 
     if 'audiochannels' in infoLabels:
         item.add_StreamInfo('audio', {'codec': 'ac3', 'channels': int(infoLabels['audiochannels'])})
@@ -145,6 +190,8 @@ def addVideo(name, asin, infoLabels, cm=None, export=False):
         cm = cm if cm else []
         cm.insert(0, (getString(30101), 'Action(ToggleWatched)'))
         item.set_Info('Video', infoLabels)
+        if _g.KodiVersion > 19 and item.InfoTag is not None:
+            item.InfoTag.setTitle(name)
         item.addContextMenuItems(cm)
         url += '&selbitrate=' + bitrate
         xbmcplugin.addDirectoryItem(_g.pluginhandle, url, item, isFolder=False)

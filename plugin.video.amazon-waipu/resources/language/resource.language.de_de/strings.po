@@ -693,6 +693,54 @@ msgctxt "#30219"
 msgid "Unable to retrieve Amazon's territorial configuration."
 msgstr "Die Regionskonfiguration konnte nicht von Amazon abgerufen werden."
 
+msgctxt "#30220"
+msgid "Poster badge mode"
+msgstr "Poster-Badge-Modus"
+
+msgctxt "#30221"
+msgid "Off"
+msgstr "Aus"
+
+msgctxt "#30222"
+msgid "Border only"
+msgstr "Nur Rahmen"
+
+msgctxt "#30223"
+msgid "Badge only"
+msgstr "Nur Badge"
+
+msgctxt "#30224"
+msgid "Border + Badge"
+msgstr "Rahmen + Badge"
+
+msgctxt "#30225"
+msgid "Badge border color (hex RGB)"
+msgstr "Badge-Rahmenfarbe (Hex RGB)"
+
+msgctxt "#30226"
+msgid "Badge display strategy"
+msgstr "Badge-Darstellung"
+
+msgctxt "#30227"
+msgid "Automatic"
+msgstr "Automatisch"
+
+msgctxt "#30228"
+msgid "Text color only"
+msgstr "Nur Text-Farbe"
+
+msgctxt "#30229"
+msgid "Image badge (PIL)"
+msgstr "Bild-Badge (PIL)"
+
+msgctxt "#30230"
+msgid "Skin overlay"
+msgstr "Skin-Overlay"
+
+msgctxt "#30231"
+msgid "Auto-refresh after badge creation"
+msgstr "Auto-Refresh nach Badge-Erzeugung"
+
 msgctxt "#30242"
 msgid "Page {}"
 msgstr "Seite {}"
