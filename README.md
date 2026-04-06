@@ -67,6 +67,14 @@ git merge upstream/master
 # Konflikte loesen (unsere Patches sind isoliert), testen, pushen
 ```
 
+## Abhaengigkeiten (Plugin-Installation)
+
+`plugin.video.amazon-waipu` benoetigt u.a. `beautifulsoup4`, `pyxbmct`, `inputstreamhelper` -- diese liegen **nicht** in diesem Repository, sondern im **offiziellen Kodi-Repository** (`repository.xbmc.org`). Kodi loest sie beim Installieren des Plugins automatisch auf, **sofern** das offizielle Repo in Kodi installiert und erreichbar ist.
+
+Aus diesem Repo kommen u.a.: `script.module.mechanicalsoup`, `script.module.pyautogui`, `script.module.amazoncaptcha` (siehe `docs/addons.xml`).
+
+Das Repository-Addon (`repository.amazon-waipu`) laedt Index und ZIPs von **GitHub Pages** (`info` / `checksum` / `datadir` in `repository.amazon-waipu/addon.xml`).
+
 ## Kodi Repository (Self-Hosted)
 
 Das Plugin wird ueber GitHub Pages bereitgestellt:
