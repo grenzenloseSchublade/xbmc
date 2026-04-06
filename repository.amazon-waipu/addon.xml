@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="repository.amazon-waipu"
        name="Amazon VOD Enhanced Repository"
-       version="1.0.2"
+       version="1.0.3"
        provider-name="grenzenloseSchublade">
   <extension point="xbmc.addon.repository" name="Amazon VOD Enhanced Repository">
-    <info compressed="false">https://cdn.jsdelivr.net/gh/grenzenloseSchublade/xbmc@master/docs/addons.xml</info>
-    <checksum>https://cdn.jsdelivr.net/gh/grenzenloseSchublade/xbmc@master/docs/addons.xml.md5</checksum>
-    <datadir zip="true">https://cdn.jsdelivr.net/gh/grenzenloseSchublade/xbmc@master/docs</datadir>
+    <info compressed="false">https://grenzenloseSchublade.github.io/xbmc/addons.xml</info>
+    <checksum>https://grenzenloseSchublade.github.io/xbmc/addons.xml.md5</checksum>
+    <datadir zip="true">https://grenzenloseSchublade.github.io/xbmc</datadir>
   </extension>
   <extension point="xbmc.addon.metadata">
     <summary lang="en_GB">Amazon VOD Enhanced - Custom Kodi Repository</summary>
