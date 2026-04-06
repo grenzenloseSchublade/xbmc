@@ -1,16 +1,20 @@
-import requests
-import bs4
-from six.moves import urllib
-from six import string_types
-from .form import Form
-import webbrowser
+import io
+import os
 import tempfile
-from .utils import LinkNotFoundError
-from .__version__ import __version__, __title__
+import urllib
 import weakref
+import webbrowser
+
+import bs4
+import bs4.dammit
+import requests
+
+from .__version__ import __title__, __version__
+from .form import Form
+from .utils import LinkNotFoundError, is_multipart_file_upload
 
 
-class Browser(object):
+class Browser:
     """Builds a low-level Browser.
 
     It is recommended to use :class:`StatefulBrowser` for most applications,
@@ -20,7 +24,7 @@ class Browser(object):
         constructing a new one.
     :param soup_config: Configuration passed to BeautifulSoup to affect
         the way HTML is parsed. Defaults to ``{'features': 'lxml'}``.
-        If overriden, it is highly recommended to `specify a parser
+        If overridden, it is highly recommended to `specify a parser
         <https://www.crummy.com/software/BeautifulSoup/bs4/doc/#specifying-the-parser-to-use>`__.
         Otherwise, BeautifulSoup will issue a warning and pick one for
         you, but the parser it chooses may be different on different
@@ -67,7 +71,28 @@ class Browser(object):
         """Attaches a soup object to a requests response."""
         if ("text/html" in response.headers.get("Content-Type", "") or
                 Browser.__looks_like_html(response)):
-            response.soup = bs4.BeautifulSoup(response.content, **soup_config)
+            # Note: By default (no charset provided in HTTP headers), requests
+            # returns 'ISO-8859-1' which is the default for HTML4, even if HTML
+            # code specifies a different encoding. In this case, we want to
+            # resort to bs4 sniffing, hence the special handling here.
+            http_encoding = (
+                response.encoding
+                if 'charset' in response.headers.get("Content-Type", "")
+                else None
+            )
+            html_encoding = bs4.dammit.EncodingDetector.find_declared_encoding(
+                response.content,
+                is_html=True
+            )
+            # See https://www.w3.org/International/questions/qa-html-encoding-declarations.en#httphead  # noqa: E501
+            # > The HTTP header has a higher precedence than the in-document
+            # > meta declarations.
+            encoding = http_encoding if http_encoding else html_encoding
+            response.soup = bs4.BeautifulSoup(
+                response.content,
+                from_encoding=encoding,
+                **soup_config
+            )
         else:
             response.soup = None
 
@@ -76,8 +101,8 @@ class Browser(object):
         session handles cookies automatically without calling this function,
         only use this when default cookie handling is insufficient.
 
-        :param cookiejar: Any `cookielib.CookieJar
-          <https://docs.python.org/2/library/cookielib.html#cookielib.CookieJar>`__
+        :param cookiejar: Any `http.cookiejar.CookieJar
+          <https://docs.python.org/3/library/http.cookiejar.html#http.cookiejar.CookieJar>`__
           compatible object.
         """
         self.session.cookies = cookiejar
@@ -91,7 +116,7 @@ class Browser(object):
         # set a default user_agent if not specified
         if user_agent is None:
             requests_ua = requests.utils.default_user_agent()
-            user_agent = '%s (%s/%s)' % (requests_ua, __title__, __version__)
+            user_agent = f'{requests_ua} ({__title__}/{__version__})'
 
         # the requests module uses a case-insensitive dict for session headers
         self.session.headers['User-agent'] = user_agent
@@ -139,6 +164,18 @@ class Browser(object):
         Browser.add_soup(response, self.soup_config)
         return response
 
+    def put(self, *args, **kwargs):
+        """Straightforward wrapper around `requests.Session.put
+        <http://docs.python-requests.org/en/master/api/#requests.Session.put>`__.
+
+        :return: `requests.Response
+            <http://docs.python-requests.org/en/master/api/#requests.Response>`__
+            object with a *soup*-attribute added by :func:`add_soup`.
+        """
+        response = self.session.put(*args, **kwargs)
+        Browser.add_soup(response, self.soup_config)
+        return response
+
     @staticmethod
     def _get_request_kwargs(method, url, **kwargs):
         """This method exists to raise a TypeError when a method or url is
@@ -172,7 +209,7 @@ class Browser(object):
 
         # Process form tags in the order that they appear on the page,
         # skipping those tags that do not have a name-attribute.
-        selector = ",".join("{}[name]".format(i) for i in
+        selector = ",".join(f"{tag}[name]" for tag in
                             ("input", "button", "textarea", "select"))
         for tag in form.select(selector):
             name = tag.get("name")  # name-attribute of tag
@@ -192,17 +229,20 @@ class Browser(object):
 
                 # If the enctype is not multipart, the filename is put in
                 # the form as a text input and the file is not sent.
-                if tag.get("type", "").lower() == "file" and multipart:
-                    filename = value
-                    if filename != "" and isinstance(filename, string_types):
-                        content = open(filename, "rb")
+                if is_multipart_file_upload(form, tag):
+                    if isinstance(value, io.IOBase):
+                        content = value
+                        filename = os.path.basename(getattr(value, "name", ""))
                     else:
                         content = ""
-                    # If value is the empty string, we still pass it
+                        filename = os.path.basename(value)
+                    # If content is the empty string, we still pass it
                     # for consistency with browsers (see
                     # https://github.com/MechanicalSoup/MechanicalSoup/issues/250).
                     files[name] = (filename, content)
                 else:
+                    if isinstance(value, io.IOBase):
+                        value = os.path.basename(getattr(value, "name", ""))
                     data.append((name, value))
 
             elif tag.name == "button":

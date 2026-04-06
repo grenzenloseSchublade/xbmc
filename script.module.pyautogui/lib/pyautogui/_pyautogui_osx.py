@@ -246,14 +246,14 @@ def _normalKeyEvent(key, upDown):
                         keyboardMapping['shift'], upDown == 'down')
             Quartz.CGEventPost(Quartz.kCGHIDEventTap, event)
             # Tiny sleep to let OS X catch up on us pressing shift
-            time.sleep(0.01)
+            time.sleep(pyautogui.DARWIN_CATCH_UP_TIME)
 
         else:
             key_code = keyboardMapping[key]
 
         event = Quartz.CGEventCreateKeyboardEvent(None, key_code, upDown == 'down')
         Quartz.CGEventPost(Quartz.kCGHIDEventTap, event)
-        time.sleep(0.01)
+        time.sleep(pyautogui.DARWIN_CATCH_UP_TIME)
 
     # TODO - wait, is the shift key's keyup not done?
     # TODO - get rid of this try-except.
@@ -387,6 +387,20 @@ def _click(x, y, button):
     else:
         assert False, "button argument not in ('left', 'middle', 'right')"
 
+
+_mouse_is_swapped_setting = None
+
+
+def _mouse_is_swapped():
+    # TODO - for performance reasons, we only check the swapped mouse button
+    # setting from the OS once at start up, rather than every mouse click.
+    # This may change in the future.
+    global _mouse_is_swapped_setting
+    if _mouse_is_swapped_setting is None:
+        _mouse_is_swapped_setting = False # TODO - for now, we can't detect this setting
+    return _mouse_is_swapped_setting
+
+
 def _multiClick(x, y, button, num, interval=0.0):
     btn    = None
     down   = None
@@ -427,8 +441,8 @@ def _dragTo(x, y, button):
         _sendMouseEvent(Quartz.kCGEventRightMouseDragged , x, y, Quartz.kCGMouseButtonRight)
     else:
         assert False, "button argument not in ('left', 'middle', 'right')"
-    time.sleep(0.01) # needed to allow OS time to catch up.
+    time.sleep(pyautogui.DARWIN_CATCH_UP_TIME) # needed to allow OS time to catch up.
 
 def _moveTo(x, y):
     _sendMouseEvent(Quartz.kCGEventMouseMoved, x, y, 0)
-    time.sleep(0.01) # needed to allow OS time to catch up.
+    time.sleep(pyautogui.DARWIN_CATCH_UP_TIME) # needed to allow OS time to catch up.

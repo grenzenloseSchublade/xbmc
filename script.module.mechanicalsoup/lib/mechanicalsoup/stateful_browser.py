@@ -1,12 +1,14 @@
-from __future__ import print_function
-
-from six.moves import urllib
-from .browser import Browser
-from .utils import LinkNotFoundError
-from .form import Form
-import sys
 import re
+import sys
+import urllib
+
 import bs4
+
+from .browser import Browser
+from .form import Form
+from .utils import LinkNotFoundError
+
+from requests.structures import CaseInsensitiveDict
 
 
 class _BrowserState:
@@ -26,7 +28,7 @@ class StatefulBrowser(Browser):
         constructing a new one.
     :param soup_config: Configuration passed to BeautifulSoup to affect
         the way HTML is parsed. Defaults to ``{'features': 'lxml'}``.
-        If overriden, it is highly recommended to `specify a parser
+        If overridden, it is highly recommended to `specify a parser
         <https://www.crummy.com/software/BeautifulSoup/bs4/doc/#specifying-the-parser-to-use>`__.
         Otherwise, BeautifulSoup will issue a warning and pick one for
         you, but the parser it chooses may be different on different
@@ -55,7 +57,7 @@ class StatefulBrowser(Browser):
     """
 
     def __init__(self, *args, **kwargs):
-        super(StatefulBrowser, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.__debug = False
         self.__verbose = 0
         self.__state = _BrowserState()
@@ -205,10 +207,29 @@ class StatefulBrowser(Browser):
         :return: The selected form as a soup object. It can also be
             retrieved later with the :attr:`form` attribute.
         """
+
+        def find_associated_elements(form_id):
+            """Find all elements associated to a form
+                (i.e. an element with a form attribute -> ``form=form_id``)
+            """
+
+            # Elements which can have a form owner
+            elements_with_owner_form = ("input", "button", "fieldset",
+                                        "object", "output", "select",
+                                        "textarea")
+
+            found_elements = []
+
+            for element in elements_with_owner_form:
+                found_elements.extend(
+                    self.page.find_all(element, form=form_id)
+                )
+            return found_elements
+
         if isinstance(selector, bs4.element.Tag):
             if selector.name != "form":
                 raise LinkNotFoundError
-            self.__state.form = Form(selector)
+            form = selector
         else:
             # nr is a 0-based index for consistency with mechanize
             found_forms = self.page.select(selector,
@@ -218,34 +239,52 @@ class StatefulBrowser(Browser):
                     print('select_form failed for', selector)
                     self.launch_browser()
                 raise LinkNotFoundError()
-            self.__state.form = Form(found_forms[-1])
+
+            form = found_forms[-1]
+
+        if form and form.has_attr('id'):
+            form_id = form["id"]
+            new_elements = find_associated_elements(form_id)
+            form.extend(new_elements)
+
+        self.__state.form = Form(form)
 
         return self.form
 
+    def _merge_referer(self, **kwargs):
+        """Helper function to set the Referer header in kwargs passed to
+        requests, if it has not already been overridden by the user."""
+
+        referer = self.url
+        headers = CaseInsensitiveDict(kwargs.get('headers', {}))
+        if referer is not None and 'Referer' not in headers:
+            headers['Referer'] = referer
+            kwargs['headers'] = headers
+        return kwargs
+
     def submit_selected(self, btnName=None, update_state=True,
-                        *args, **kwargs):
+                        **kwargs):
         """Submit the form that was selected with :func:`select_form`.
 
         :return: Forwarded from :func:`Browser.submit`.
 
-        If there are multiple submit input/button elements, passes ``btnName``
-        to :func:`Form.choose_submit` on the current form to choose between
-        them. If `update_state` is False, form will be submited but the browser
-        state will remain unchanged. This is useful for forms that result in
-        a download of a file. All other arguments are forwarded to
-        :func:`Browser.submit`.
+        :param btnName: Passed to :func:`Form.choose_submit` to choose the
+            element of the current form to use for submission. If ``None``,
+            will choose the first valid submit element in the form, if one
+            exists. If ``False``, will not use any submit element; this is
+            useful for simulating AJAX requests, for example.
+
+        :param update_state: If False, the form will be submitted but the
+            browser state will remain unchanged; this is useful for forms that
+            result in a download of a file, for example.
+
+        All other arguments are forwarded to :func:`Browser.submit`.
         """
         self.form.choose_submit(btnName)
 
-        referer = self.url
-        if referer is not None:
-            if 'headers' in kwargs:
-                kwargs['headers']['Referer'] = referer
-            else:
-                kwargs['headers'] = {'Referer': referer}
-
+        kwargs = self._merge_referer(**kwargs)
         resp = self.submit(self.__state.form, url=self.__state.url,
-                           *args, **kwargs)
+                           **kwargs)
         if update_state:
             self.__state = _BrowserState(page=resp.soup, url=resp.url,
                                          request=resp.request)
@@ -322,7 +361,8 @@ class StatefulBrowser(Browser):
                 self.launch_browser()
             raise
 
-    def follow_link(self, link=None, *args, **kwargs):
+    def follow_link(self, link=None, *bs4_args, bs4_kwargs={},
+                    requests_kwargs={},  **kwargs):
         """Follow a link.
 
         If ``link`` is a bs4.element.Tag (i.e. from a previous call to
@@ -330,22 +370,28 @@ class StatefulBrowser(Browser):
 
         If ``link`` doesn't have a *href*-attribute or is None, treat
         ``link`` as a url_regex and look it up with :func:`find_link`.
-        Any additional arguments specified are forwarded to this function.
+        ``bs4_kwargs`` are forwarded to :func:`find_link`.
+        For backward compatibility, any excess keyword arguments
+        (aka ``**kwargs``)
+        are also forwarded to :func:`find_link`.
 
         If the link is not found, raise :class:`LinkNotFoundError`.
         Before raising, if debug is activated, list available links in the
         page and launch a browser.
 
+        ``requests_kwargs`` are forwarded to :func:`open_relative`.
+
         :return: Forwarded from :func:`open_relative`.
         """
-        link = self._find_link_internal(link, args, kwargs)
+        link = self._find_link_internal(link, bs4_args,
+                                        {**bs4_kwargs, **kwargs})
 
-        referer = self.url
-        headers = {'Referer': referer} if referer else None
+        requests_kwargs = self._merge_referer(**requests_kwargs)
 
-        return self.open_relative(link['href'], headers=headers)
+        return self.open_relative(link['href'], **requests_kwargs)
 
-    def download_link(self, link=None, file=None, *args, **kwargs):
+    def download_link(self, link=None, file=None, *bs4_args, bs4_kwargs={},
+                      requests_kwargs={}, **kwargs):
         """Downloads the contents of a link to a file. This function behaves
         similarly to :func:`follow_link`, but the browser state will
         not change when calling this function.
@@ -354,20 +400,22 @@ class StatefulBrowser(Browser):
             downloaded. If the file already exists, it will be overwritten.
 
         Other arguments are the same as :func:`follow_link` (``link``
-        can either be a bs4.element.Tag or a URL regex, other
-        arguments are forwarded to :func:`find_link`).
+        can either be a bs4.element.Tag or a URL regex.
+        ``bs4_kwargs`` arguments are forwarded to :func:`find_link`,
+        as are any excess keyword arguments (aka ``**kwargs``) for backwards
+        compatibility).
 
         :return: `requests.Response
             <http://docs.python-requests.org/en/master/api/#requests.Response>`__
             object.
         """
-        link = self._find_link_internal(link, args, kwargs)
+        link = self._find_link_internal(link, bs4_args,
+                                        {**bs4_kwargs, **kwargs})
         url = self.absolute_url(link['href'])
 
-        referer = self.url
-        headers = {'Referer': referer} if referer else None
+        requests_kwargs = self._merge_referer(**requests_kwargs)
 
-        response = self.session.get(url, headers=headers)
+        response = self.session.get(url, **requests_kwargs)
         if self.raise_on_404 and response.status_code == 404:
             raise LinkNotFoundError()
 
@@ -386,4 +434,4 @@ class StatefulBrowser(Browser):
         """
         if soup is None:
             soup = self.page
-        super(StatefulBrowser, self).launch_browser(soup)
+        super().launch_browser(soup)

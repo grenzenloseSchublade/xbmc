@@ -23,7 +23,7 @@ except AttributeError:
 A lot of this code is probably repeated from win32 extensions module, but I didn't want to have that dependency.
 
 Note: According to http://msdn.microsoft.com/en-us/library/windows/desktop/ms646260(v=vs.85).aspx
-the ctypes.windll.user32.mouse_event() function has been superceded by SendInput.
+the ctypes.windll.user32.mouse_event() function has been superseded by SendInput.
 
 SendInput() is documented here: http://msdn.microsoft.com/en-us/library/windows/desktop/ms646310(v=vs.85).aspx
 
@@ -55,13 +55,6 @@ KEYEVENTF_KEYUP = 0x0002
 INPUT_MOUSE = 0
 INPUT_KEYBOARD = 1
 
-
-# This ctypes structure is for a Win32 POINT structure,
-# which is documented here: http://msdn.microsoft.com/en-us/library/windows/desktop/dd162805(v=vs.85).aspx
-# The POINT structure is used by GetCursorPos().
-class POINT(ctypes.Structure):
-    _fields_ = [("x", ctypes.c_long),
-                ("y", ctypes.c_long)]
 
 # These ctypes structures are for Win32 INPUT, MOUSEINPUT, KEYBDINPUT, and HARDWAREINPUT structures,
 # used by SendInput and documented here: http://msdn.microsoft.com/en-us/library/windows/desktop/ms646270(v=vs.85).aspx
@@ -289,12 +282,12 @@ def _keyDown(key):
     mods, vkCode = divmod(keyboardMapping[key], 0x100)
 
     for apply_mod, vk_mod in [(mods & 4, 0x12), (mods & 2, 0x11),
-        (mods & 1 or needsShift, 0x10)]: #HANKAKU not suported! mods & 8
+        (mods & 1 or needsShift, 0x10)]: #HANKAKU not supported! mods & 8
         if apply_mod:
             ctypes.windll.user32.keybd_event(vk_mod, 0, KEYEVENTF_KEYDOWN, 0) #
     ctypes.windll.user32.keybd_event(vkCode, 0, KEYEVENTF_KEYDOWN, 0)
     for apply_mod, vk_mod in [(mods & 1 or needsShift, 0x10), (mods & 2, 0x11),
-        (mods & 4, 0x12)]: #HANKAKU not suported! mods & 8
+        (mods & 4, 0x12)]: #HANKAKU not supported! mods & 8
         if apply_mod:
             ctypes.windll.user32.keybd_event(vk_mod, 0, KEYEVENTF_KEYUP, 0) #
 
@@ -329,12 +322,12 @@ def _keyUp(key):
     mods, vkCode = divmod(keyboardMapping[key], 0x100)
 
     for apply_mod, vk_mod in [(mods & 4, 0x12), (mods & 2, 0x11),
-        (mods & 1 or needsShift, 0x10)]: #HANKAKU not suported! mods & 8
+        (mods & 1 or needsShift, 0x10)]: #HANKAKU not supported! mods & 8
         if apply_mod:
             ctypes.windll.user32.keybd_event(vk_mod, 0, 0, 0) #
     ctypes.windll.user32.keybd_event(vkCode, 0, KEYEVENTF_KEYUP, 0)
     for apply_mod, vk_mod in [(mods & 1 or needsShift, 0x10), (mods & 2, 0x11),
-        (mods & 4, 0x12)]: #HANKAKU not suported! mods & 8
+        (mods & 4, 0x12)]: #HANKAKU not supported! mods & 8
         if apply_mod:
             ctypes.windll.user32.keybd_event(vk_mod, 0, KEYEVENTF_KEYUP, 0) #
 
@@ -347,7 +340,7 @@ def _position():
       (x, y) tuple of the current xy coordinates of the mouse cursor.
     """
 
-    cursor = POINT()
+    cursor = ctypes.wintypes.POINT()
     ctypes.windll.user32.GetCursorPos(ctypes.byref(cursor))
     return (cursor.x, cursor.y)
 
@@ -375,7 +368,7 @@ def _moveTo(x, y):
     """
     ctypes.windll.user32.SetCursorPos(x, y)
     # This was a possible solution to issue #314 https://github.com/asweigart/pyautogui/issues/314
-    # but I'd like to hang on to SetCursorPos because mouse_event() has been superceded.
+    # but I'd like to hang on to SetCursorPos because mouse_event() has been superseded.
     #_sendMouseEvent(MOUSEEVENTF_MOVE + MOUSEEVENTF_ABSOLUTE, x, y)
 
 
@@ -464,6 +457,11 @@ def _click(x, y, button):
         # TODO: We need to figure out how to prevent these errors, see https://github.com/asweigart/pyautogui/issues/60
         pass
 
+
+def _mouse_is_swapped():
+    # TODO - measure the performance of checking this setting for each click.
+    # 23 is SM_SWAPBUTTON: "Nonzero if the meanings of the left and right mouse buttons are swapped; otherwise, 0."
+    return ctypes.windll.user32.GetSystemMetrics(23) != 0
 
 def _sendMouseEvent(ev, x, y, dwData=0):
     """The helper function that actually makes the call to the mouse_event()

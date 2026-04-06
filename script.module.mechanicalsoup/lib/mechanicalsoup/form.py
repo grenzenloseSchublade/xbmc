@@ -1,8 +1,10 @@
-from __future__ import print_function
 import copy
+import io
 import warnings
-from .utils import LinkNotFoundError
+
 from bs4 import BeautifulSoup
+
+from .utils import LinkNotFoundError, is_multipart_file_upload
 
 
 class InvalidFormMethod(LinkNotFoundError):
@@ -16,7 +18,7 @@ class InvalidFormMethod(LinkNotFoundError):
     pass
 
 
-class Form(object):
+class Form:
     """Build a fillable form.
 
     :param form: A bs4.element.Tag corresponding to an HTML form element.
@@ -36,9 +38,9 @@ class Form(object):
     def __init__(self, form):
         if form.name != 'form':
             warnings.warn(
-                "Constructed a Form from a '{}' instead of a 'form' element. "
-                "This may be an error in a future version of MechanicalSoup."
-                .format(form.name), FutureWarning)
+                f"Constructed a Form from a '{form.name}' instead of a 'form' "
+                " element. This may be an error in a future version of "
+                "MechanicalSoup.", FutureWarning)
 
         self.form = form
         self._submit_chosen = False
@@ -67,6 +69,7 @@ class Form(object):
             i = self.form.find("input", {"name": name})
             if not i:
                 raise InvalidFormMethod("No input field named " + name)
+            self._assert_valid_file_upload(i, value)
             i["value"] = value
 
     def uncheck_all(self, name):
@@ -112,7 +115,8 @@ class Form(object):
         """
         for (name, value) in data.items():
             # Case-insensitive search for type=checkbox
-            checkboxes = self.find_by_type("input", "checkbox", {'name': name})
+            selector = 'input[type="checkbox" i][name="{}"]'.format(name)
+            checkboxes = self.form.select(selector)
             if not checkboxes:
                 raise InvalidFormMethod("No input checkbox named " + name)
 
@@ -156,7 +160,8 @@ class Form(object):
         """
         for (name, value) in data.items():
             # Case-insensitive search for type=radio
-            radios = self.find_by_type("input", "radio", {'name': name})
+            selector = 'input[type="radio" i][name="{}"]'.format(name)
+            radios = self.form.select(selector)
             if not radios:
                 raise InvalidFormMethod("No input radio named " + name)
 
@@ -170,7 +175,7 @@ class Form(object):
                     break
             else:
                 raise LinkNotFoundError(
-                    "No input radio named %s with choice %s" % (name, value)
+                    f"No input radio named {name} with choice {value}"
                 )
 
     def set_textarea(self, data):
@@ -225,7 +230,7 @@ class Form(object):
 
                 if not option:
                     raise LinkNotFoundError(
-                        'Option %s not found for select %s' % (choice, name)
+                        f'Option {choice} not found for select {name}'
                     )
 
                 option.attrs["selected"] = "selected"
@@ -258,12 +263,12 @@ class Form(object):
             form.set("eula-checkbox", True)
 
         Example: uploading a file through a ``<input type="file"
-        name="tagname">`` field (provide the path to the local file,
+        name="tagname">`` field (provide an open file object,
         and its content will be uploaded):
 
         .. code-block:: python
 
-            form.set("tagname", path_to_local_file)
+            form.set("tagname", open(path_to_local_file, "rb"))
 
         """
         for func in ("checkbox", "radio", "input", "textarea", "select"):
@@ -297,15 +302,18 @@ class Form(object):
         control['value'] = value
         for k, v in kwargs.items():
             control[k] = v
+        self._assert_valid_file_upload(control, value)
         self.form.append(control)
         return control
 
     def choose_submit(self, submit):
         """Selects the input (or button) element to use for form submission.
 
-        :param submit: The bs4.element.Tag (or just its *name*-attribute) that
-            identifies the submit element to use. If ``None``, will choose the
-            first valid submit element in the form, if one exists.
+        :param submit: The :class:`bs4.element.Tag` (or just its
+            *name*-attribute) that identifies the submit element to use. If
+            ``None``, will choose the first valid submit element in the form,
+            if one exists. If ``False``, will not use any submit element;
+            this is useful for simulating AJAX requests, for example.
 
         To simulate a normal web browser, only one submit element must be
         sent. Therefore, this does not need to be called if there is only
@@ -331,10 +339,9 @@ class Form(object):
                 raise Exception('Submit already chosen. Cannot change submit!')
 
         # All buttons NOT of type (button,reset) are valid submits
-        inps = (self.find_by_type("input", "submit", dict()) +
-                self.form.find_all("button"))
-        inps = [i for i in inps
-                if i.get('type', '').lower() not in ('button', 'reset')]
+        # Case-insensitive search for type=submit
+        inps = [i for i in self.form.select('input[type="submit" i], button')
+                if i.get("type", "").lower() not in ('button', 'reset')]
 
         # If no submit specified, choose the first one
         if submit is None and inps:
@@ -345,7 +352,7 @@ class Form(object):
             if (inp.has_attr('name') and inp['name'] == submit):
                 if found:
                     raise LinkNotFoundError(
-                        "Multiple submit elements match: {0}".format(submit)
+                        f"Multiple submit elements match: {submit}"
                     )
                 found = True
             elif inp == submit:
@@ -359,9 +366,9 @@ class Form(object):
                 # omitted from the submitted form data.
                 del inp['name']
 
-        if not found and submit is not None:
+        if not found and submit is not None and submit is not False:
             raise LinkNotFoundError(
-                "Specified submit element not found: {0}".format(submit)
+                f"Specified submit element not found: {submit}"
             )
         self._submit_chosen = True
 
@@ -380,7 +387,16 @@ class Form(object):
                     subtag.string = subtag.string.strip()
             print(input_copy)
 
-    def find_by_type(self, tag_name, type_attr, attrs):
-        attrs_dict = attrs.copy()
-        attrs_dict['type'] = lambda x: x and x.lower() == type_attr
-        return self.form.find_all(tag_name, attrs=attrs_dict)
+    def _assert_valid_file_upload(self, tag, value):
+        """Raise an exception if a multipart file input is not an open file."""
+        if (
+            is_multipart_file_upload(self.form, tag) and
+            not isinstance(value, io.IOBase)
+        ):
+            raise ValueError(
+                "From v1.3.0 onwards, you must pass an open file object "
+                'directly, e.g. `form["name"] = open("/path/to/file", "rb")`. '
+                "This change is to remediate a security vulnerability where "
+                "a malicious web server could read arbitrary files from the "
+                "client (CVE-2023-34457)."
+            )
