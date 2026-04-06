@@ -9,8 +9,12 @@ ADDONS=(
     "plugin.video.amazon-waipu"
     "repository.amazon-waipu"
     "script.module.amazoncaptcha"
+    "script.module.beautifulsoup4"
+    "script.module.inputstreamhelper"
     "script.module.mechanicalsoup"
     "script.module.pyautogui"
+    "script.module.pyxbmct"
+    "script.module.soupsieve"
 )
 
 rm -rf "${DOCS_DIR}"
@@ -106,8 +110,12 @@ addon_dirs = [
     'plugin.video.amazon-waipu',
     'repository.amazon-waipu',
     'script.module.amazoncaptcha',
+    'script.module.beautifulsoup4',
+    'script.module.inputstreamhelper',
     'script.module.mechanicalsoup',
     'script.module.pyautogui',
+    'script.module.pyxbmct',
+    'script.module.soupsieve',
 ]
 
 for addon_id in addon_dirs:
