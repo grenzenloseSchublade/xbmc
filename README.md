@@ -14,6 +14,7 @@ Dieser Fork verbessert die Sichtbarkeit durch:
 - **Label2 "Kauf"** als zweite Textzeile (in Listen-Views sichtbar)
 - **Property `IsPaid`** fuer Skin-Anpassungen (z.B. Overlays)
 - **Auffaelligere Default-Farbe** (`FFFF4400` Orange statt `FFE95E01` Gelb)
+- **Zuverlaessiges View-Setting** (Kodi Bug #18576 Workaround)
 
 ## Installation
 
@@ -36,6 +37,30 @@ In Kodi: Add-ons → Meine Add-ons → Video → Amazon Prime Video → Deinstal
 
 Nach Installation des Fork-Plugins muss einmalig neu eingeloggt werden (Tokens sind addon-spezifisch).
 
+## View-Handling (Kodi Bug #18576 Fix)
+
+Das Original-Plugin hat einen kritischen Bug: `Container.SetViewMode()` wird **vor** `endOfDirectory()` aufgerufen. Kodi ignoriert den Aufruf, weil das Directory noch nicht fertig geladen ist ([Bug #18576](https://github.com/xbmc/xbmc/issues/18576)). Dadurch greifen die View-Einstellungen des Plugins nicht zuverlaessig.
+
+**Unser Fix in `itemlisting.py` (`setContentAndView()`):**
+
+1. `endOfDirectory()` wird zuerst aufgerufen (Directory vollstaendig registriert)
+2. `xbmc.sleep(100)` gibt Kodi Zeit, das Directory zu verarbeiten
+3. Erst dann wird `Container.SetViewMode(viewid)` ausgefuehrt
+4. `addSortMethod` mit `label2Mask='%h'` ermoeglicht die Label2-Anzeige ("Kauf")
+5. Fallback fuer `videos`/`files`-Content-Typen (Kategorien, Suche) ueber `movieid`
+
+**Auswirkung auf `kodi_set_views.sh` (waipu-setup):**
+
+Das Setup-Skript setzt im `all`-Modus Views ueber 4 Methoden. Die **`plugin`-Methode** (Custom-View-IDs in den Plugin-Settings) funktioniert erst durch unseren Fix zuverlaessig, weil das Plugin die Settings nun korrekt anwendet. Damit greifen die konfigurierten Views auf **allen Verschachtelungsebenen**:
+
+| Ebene | Content-Type | View (Beispiel Arctic Zephyr) |
+|-------|-------------|-------------------------------|
+| Filmliste | `movies` | `movieview` → 527 (ListV2) |
+| Serienliste | `tvshows` | `showview` → 527 (ListV2) |
+| Staffeluebersicht | `seasons` | `seasonview` → 524 (PosterFlixV2Seasons) |
+| Episodenliste | `episodes` | `episodeview` → 521 (PosterFlixV2) |
+| Kategorien/Suche | `videos`/`files` | Fallback → `movieid`, Skin-Default oder DB |
+
 ## Gepatchte Dateien
 
 | Datei | Aenderung |
@@ -43,7 +68,7 @@ Nach Installation des Fork-Plugins muss einmalig neu eingeloggt werden (Tokens s
 | `plugin.video.amazon-waipu/addon.xml` | Neue Addon-ID, Version, Provider |
 | `plugin.video.amazon-waipu/resources/lib/android_api.py` | Euro-Prefix in `formatTitle()`, Facetten-Prefix, `offerType`-Erkennung |
 | `plugin.video.amazon-waipu/resources/lib/web_api.py` | Euro-Prefix fuer Kategorien |
-| `plugin.video.amazon-waipu/resources/lib/itemlisting.py` | `setLabel2`, `IsPaid`/`OfferType` Properties, Badge-Modus-Steuerung |
+| `plugin.video.amazon-waipu/resources/lib/itemlisting.py` | View-Bug-Fix (#18576), `setLabel2`, `IsPaid`/`OfferType` Properties, Badge-Steuerung |
 | `plugin.video.amazon-waipu/resources/lib/badge_overlay.py` | PIL-Badge-Erzeugung, Hintergrund-Verarbeitung, Container.Refresh |
 | `plugin.video.amazon-waipu/resources/lib/common.py` | Settings fuer `badge_display`, `badge_auto_refresh`, `badge_mode`, `badge_color` |
 | `plugin.video.amazon-waipu/resources/settings.xml` | Bezahlinhalt-Einstellungen (Badge-Modus, Auto-Refresh, Farben) |
@@ -142,12 +167,15 @@ git merge upstream/master
 
 Aus diesem Repo kommen u.a.: `script.module.mechanicalsoup`, `script.module.pyautogui`, `script.module.amazoncaptcha` (siehe `docs/addons.xml`).
 
-Das Repository-Addon (`repository.amazon-waipu`) laedt Index und ZIPs von **GitHub Pages** (`info` / `checksum` / `datadir` in `repository.amazon-waipu/addon.xml`).
+Das Repository-Addon (`repository.amazon-waipu`) laedt Index und ZIPs von **raw.githubusercontent.com** (`info` / `checksum` / `datadir` in `repository.amazon-waipu/addon.xml`). GitHub Pages dient als Browse-URL fuer die initiale Repository-Installation in Kodi.
+
+**Warum raw.githubusercontent.com statt GitHub Pages?** GitHub Pages liefert `.md5`-Dateien als `Content-Type: application/octet-stream`, was Kodis HTTP-Client ablehnt (`CRepository: failed read`). raw.githubusercontent.com liefert `text/plain` -- kompatibel mit allen Kodi-Versionen.
 
 ## Kodi Repository (Self-Hosted)
 
-Das Plugin wird ueber GitHub Pages bereitgestellt:
-- URL: `https://grenzenloseSchublade.github.io/xbmc/`
+Das Plugin wird ueber GitHub bereitgestellt:
+- Browse-URL: `https://grenzenloseSchublade.github.io/xbmc/` (GitHub Pages, fuer Kodi-Dateimanager)
+- Repo-URLs: `https://raw.githubusercontent.com/grenzenloseSchublade/xbmc/master/docs/` (addons.xml, ZIPs)
 - Build: `scripts/build_repo.sh` generiert ZIPs + `addons.xml` in `docs/`
 - CI: GitHub Action (`.github/workflows/build-repo.yml`) baut automatisch bei Push
 
@@ -160,7 +188,7 @@ xbmc/  (Fork von Sandmann79/xbmc)
 │   ├── addon.xml                        # ID: plugin.video.amazon-waipu
 │   ├── resources/lib/android_api.py     # Patch: formatTitle, Facetten, offerType
 │   ├── resources/lib/web_api.py         # Patch: Kategorien-Farben
-│   ├── resources/lib/itemlisting.py     # Patch: Label2, IsPaid, Badge-Steuerung
+│   ├── resources/lib/itemlisting.py     # Patch: View-Fix #18576, Label2, IsPaid, Badge-Steuerung
 │   ├── resources/lib/badge_overlay.py   # PIL-Badge + Container.Refresh
 │   ├── resources/lib/common.py          # Badge-Einstellungen
 │   ├── resources/media/badge_paid.png   # Skin-Overlay-Badge (64x64)
