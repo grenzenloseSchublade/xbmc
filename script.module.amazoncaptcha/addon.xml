@@ -5,7 +5,7 @@
        provider-name="Anatolii Maliarov">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
-    <import addon="script.module.pil" version="1.1.7"/>
+    <import addon="script.module.pil" version="1.1.7" optional="true"/>
   </requires>
   <extension point="xbmc.python.module" library="lib" />
   <extension point="xbmc.addon.metadata">
@@ -15,5 +15,8 @@
     <platform>all</platform>
     <website>https://github.com/a-maliarov/amazoncaptcha</website>
     <source>https://github.com/a-maliarov/amazoncaptcha</source>
+    <assets>
+      <icon>icon.png</icon>
+    </assets>
   </extension>
 </addon>
