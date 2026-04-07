@@ -109,39 +109,53 @@ Bezahlinhalte (Kauf, Miete, Abo) werden durch verschiedene Strategien visuell he
 
 Fuer Arctic Zephyr Reloaded kann ein Skin-Overlay aktiviert werden, das ein 64x64-Euro-Badge direkt ueber dem Poster anzeigt -- ohne PIL, ohne Verzoegerung.
 
-**Voraussetzungen:** Das Skript `scripts/patch_skin_badges.sh` muss einmalig (und nach jedem Skin-Update erneut) ausgefuehrt werden.
+**Voraussetzungen:** Das Skript `scripts/patch_skin_badges.sh` muss einmalig (und nach jedem Skin-Update erneut) ausgefuehrt werden. Das Skript erkennt das Skin-Aufloesung-Verzeichnis (1080i/720p) automatisch.
 
 **Aufruf:**
 
 ```bash
-# Standard: Views aus Addon-Einstellungen + SidePoster
+# Standard: Liest konfigurierte Views aus Addon-Settings (movieid, showid, ...) + SidePoster (550)
 ./scripts/patch_skin_badges.sh
 
 # Bestimmte Views patchen
-./scripts/patch_skin_badges.sh 527 522 50
+./scripts/patch_skin_badges.sh 527 522 550
 
-# Alle bekannten Video-Views patchen
+# Alle 32 bekannten Video-Views patchen
 ./scripts/patch_skin_badges.sh --all
 
-# Patch entfernen
+# Status aller Views anzeigen (gepatcht/ungepatcht)
+./scripts/patch_skin_badges.sh --list
+
+# Patch entfernen (alle oder bestimmte)
 ./scripts/patch_skin_badges.sh --remove
+./scripts/patch_skin_badges.sh --remove 527
+
+# Patchen ohne Kodi-Neustart
+./scripts/patch_skin_badges.sh --no-restart 527 550
 ```
 
-Das Skript ist **idempotent pro View** -- wiederholtes Ausfuehren patcht keine Datei doppelt. Es nutzt Marker-Kommentare (`<!-- Amazon Waipu Pay Badge - VIEW_xxx -->`) zur Erkennung.
+Das Skript ist **idempotent pro View** -- wiederholtes Ausfuehren patcht keine Datei doppelt. Es nutzt Marker-Kommentare (`<!-- Amazon Waipu Pay Badge - VIEW_xxx -->`) zur Erkennung. Alle 32 Video-Views von Arctic Zephyr Reloaded werden unterstuetzt:
 
-**Bekannte View-IDs:**
+| ID | Name | ID | Name |
+|----|------|----|------|
+| 50 | List | 510 | PosterFlix |
+| 51 | BigWide | 511 | DoubleFlix |
+| 52 | BigList | 512 | DoubleFlixBanner |
+| 53 | BigPoster | 513 | VerticalShifted |
+| 54 | Banner | 514 | SquareLight |
+| 55 | PosterWall | 515 | SideCards |
+| 56 | MediaInfo | 516 | SeasonsInfo |
+| 57 | ExtraInfo | 517 | PosterWallSmall |
+| 58 | Cards | 519 | ShiftedClearArt |
+| 59 | BannerWall | 520 | FanartFlix |
+| 500 | Thumbnails | 521 | PosterFlixV2 |
+| 501 | ModernFanart | 522 | FanartFlixV2 |
+| 504 | Netflix | 524 | PosterFlixV2Seasons |
+| 507 | Fanart | 526 | SeasonsInfoV2 |
+| 509 | Shifted | 527 | ListV2 |
+| 550 | SidePoster | 555 | FanartThumbs |
 
-| ID | Datei |
-|----|-------|
-| 50 | `View_50_List.xml` |
-| 53 | `View_53_Poster.xml` |
-| 55 | `View_55_Wall.xml` |
-| 500 | `View_500_Thumbnails.xml` |
-| 510 | `View_510_Minimal.xml` |
-| 521 | `View_521_Minimal_V2.xml` |
-| 522 | `View_522_Minimal_V2_Episodes.xml` |
-| 527 | `View_527_List_V2.xml` |
-| 550 | `View_550_SidePoster.xml` |
+**Hinweis:** Innerhalb von waipu-setup steht eine erweiterte Version mit config.json-Integration und Logging bereit: `scripts/kodi_patch_skin_badges.sh`.
 
 ### Technische Details
 
